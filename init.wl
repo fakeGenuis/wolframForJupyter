@@ -4,13 +4,7 @@ BeginPackage["wolframForJupyter`", {"ZeroMQLink`"}];
 
 Begin["`Private`"]
 
-Get["messages.wl"];
-
-Get["debug.wl"];
-
-Get["evaluation.wl"];
-
-Get["handles.wl"];
+Get /@ {"messages.wl", "debug.wl", "evaluation.wl", "handles.wl"};
 
 $kernelInfo = <|
     "status" -> "ok"
@@ -24,11 +18,11 @@ $kernelInfo = <|
     "language_info" -> <|
         "name" -> "Wolfram Language"
         ,
-        "version" -> "13.2"
+        "version" -> $VersionNumber
         ,
-        "mimetype" -> "application/vnd.wolfram.m"
+        "mimetype" -> "application/vnd.wolfram.wl"
         ,
-        "file_extension" -> ".m"
+        "file_extension" -> ".wl"
         ,
         "pygments_lexer" -> "mathematica"
         ,
@@ -36,7 +30,7 @@ $kernelInfo = <|
         (* , *)(* "nbconvert_exporter" -> "" *)
     |>
     ,
-    "banner" -> "Wolfram Language 13.2.0 Engine for Linux x86 (64-bit)\nCopyright 1988-2022 Wolfram Research, Inc."
+    "banner" -> $Version
 |>;
 
 (* communicate with jupyter *)
