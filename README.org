@@ -1,6 +1,14 @@
 # -*- eval: (auto-fill-mode 1); -*-
 #+TITLE: wolfram language kernel for jupyter notebook
 
+* Installation
+#+begin_src bash
+sed -i "s|init_file|"$(realpath init.wl)"|g" wolframforjupyter/kernel.json
+jupyter kernelspec install wolframforjupyter/ --user
+#+end_src
+
+No explicit version implied, it depends on ~wolfram~ execute version in your ~$PATH~.
+
 * Kernel
 [[https://jupyter-client.readthedocs.io/en/stable/index.html][Jupyter Client 8.3 — jupyter_client 8.3.1 documentation]]
 
