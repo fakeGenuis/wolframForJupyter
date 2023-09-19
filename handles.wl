@@ -45,10 +45,10 @@ controlHandler[] := Module[
     $debugWrite[2, "enter control handler!"];
     rspMsg = msgNew["unknown", <|"status" -> "ok"|>, "ids" -> $session["socketMsg"]["ids"]];
     Switch[
-        msg["header"]["msg_type"]
+        $session["socketMsg"]["header"]["msg_type"]
         ,
         "shutdown_request", rspMsg["header"]["msg_type"] = "shutdown_reply";
-        rspMsg["content"]["restart"] = msg["content"]["restart"];
+        rspMsg["content"]["restart"] = $session["socketMsg"]["content"]["restart"];
         TimeConstrained[
             LinkClose[$session["link"]];
             $debugWrite[2, "evaluation session closed!"];
@@ -58,7 +58,7 @@ controlHandler[] := Module[
             rspMsg["content"]["status"] = "error"
         ];
         If[
-            msg["content"]["restart"]
+            rspMsg["content"]["restart"]
             ,
             createSession[]
             ,
