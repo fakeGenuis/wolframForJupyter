@@ -23,13 +23,17 @@ createSession[] := Module[
 
 (* execute code and send results, return shell channel reply content *)
 
-execHandler[] := Module[
-    {
-        code = $session["socketMsg"]["content"]["code"]
-        ,
-        rspMsgContent = <|"payload" -> {}, "user_expressions" -> <||>|>
-    }
+execHandler[] := Module[{
+    code = $session["socketMsg"]["content"]["code"]
     ,
+    rspMsgContent = <|
+        "payload" -> {}
+        ,
+        "user_expressions" -> <||>
+        ,
+        "execution_count" -> $session["execution_count"]
+    |>
+},
     $debugWrite[2, "enter exec handler!"];
     $session["status"] = "busy";
     iopubSend["execute_input", <|"code" -> code|>, "ids" -> $session["socketMsg"]["ids"]];
@@ -57,7 +61,6 @@ execHandler[] := Module[
         (* FIXME reply to error in LinkWrite *)
         pktRsp[pkt];
     ];
-    rspMsgContent["execution_count"] = $session["execution_count"];
     $session["status"] = "idle";
     rspMsgContent
 ];
