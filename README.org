@@ -1,0 +1,65 @@
+# -*- eval: (auto-fill-mode 1); -*-
+#+TITLE: wolfram language kernel for jupyter notebook
+
+* Kernel
+[[https://jupyter-client.readthedocs.io/en/stable/index.html][Jupyter Client 8.3 — jupyter_client 8.3.1 documentation]]
+
+** Language for kernel
+[[https://jupyter-client.readthedocs.io/en/stable/kernels.html#making-kernels-for-jupyter][Making kernels for Jupyter — jupyter_client 8.3.1 documentation]]
+Obviously we should choose option 2 (code execute done in =WTSP=)
+
+** Debug
+- colored debug message
+  [[https://stackoverflow.com/a/5947802][bash - How to change the output color of echo in Linux - Stack Overflow]]
+
+** Examples
+[[https://jupyter-client.readthedocs.io/en/stable/wrapperkernels.html][Making simple Python wrapper kernels — jupyter_client 8.3.1 documentation]]
+[[https://github.com/jupyter/echo_kernel][GitHub - jupyter/echo_kernel: A simple example kernel for Jupyter]]
+[[https://github.com/takluyver/bash_kernel/tree/master][GitHub - takluyver/bash_kernel: A bash kernel for IPython]]
+[[https://github.com/dsblank/simple_kernel][GitHub - dsblank/simple_kernel: A small, simple kernel example for IPython]]
+
+** Test
+[[https://github.com/jupyter/jupyter_kernel_test][GitHub - jupyter/jupyter_kernel_test: A tool for testing Jupyter kernels]]
+
+* ZeroMQ Socket
+[[https://zeromq.org/get-started/][ZeroMQ | Get started]]
+
+- zmq identity
+  [[https://zguide.zeromq.org/docs/chapter3/#Identities-and-Addresses][3. Advanced Request-Reply Patterns | ØMQ - The Guide]]
+- UTF-8 encode string
+  [[https://stackoverflow.com/questions/5597013/reading-an-utf-8-encoded-text-file-in-mathematica][Reading an UTF-8 encoded text file in Mathematica - Stack Overflow]]
+
+* Evaluation
+[[https://reference.wolfram.com/language/guide/WSTPWolframLanguageFunctions.html][WSTP Wolfram Language Functions—Wolfram Language Documentation]]
+
+currently, interrupt in jupyter is implemented by ~LinkInterrupt~. For signal
+interrupt see
+[[https://www.computerhope.com/unix/signals.htm][Linux Signals Help]]
+
+* TODO Features [0/6]
+- [ ] interrupt
+- [ ] message stream output
+- [ ] ~Short~ with too long expression
+- [ ] log evaluation time
+- [ ] export
+  [[https://nbconvert.readthedocs.io/en/latest/external_exporters.html][Customizing exporters — nbconvert 7.8.0 documentation]]
+
+* Similar
+- WolframLanguageForJupyter
+  [[https://github.com/WolframResearch/WolframLanguageForJupyter][GitHub - WolframResearch/WolframLanguageForJupyter: Wolfram Language kernel f...]]
+
+  Jupyter kernel from =WolframResearch= official. Very nice structured code,
+  this project borrows many ideas from there.
+
+- wolfram-language-notebook
+  [[https://github.com/njpipeorgan/wolfram-language-notebook][GitHub - njpipeorgan/wolfram-language-notebook: Notebook support for Wolfram ...]]
+
+  Functional wolfram notebook for vscode.
+
+- IWolfram
+  [[https://github.com/mmatera/iwolfram][GitHub - mmatera/iwolfram: A jupyter kernel for Wolfram Mathematica]]
+
+  Kernel written in python and
+  #+begin_quote
+  So far this is a proof of concept.
+  #+end_quote
