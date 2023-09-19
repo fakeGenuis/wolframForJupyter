@@ -1,0 +1,6 @@
+{
+    "argv": ["wolfram", "-script", "init_file", "{connection_file}"],
+    "display_name": "Wolfram Language",
+    "language": "Wolfram Language",
+    "interrupt_mode": "message"
+}
