@@ -20,6 +20,8 @@ shellHandler[] := Module[
     {rspMsg}
     ,
     $debugWrite[2, "enter shell handler!"];
+    $session["socketMsg"] = msgDeserialize @ SocketReadMessage[$socket["shell"], "Multipart" -> True];
+    iopubSend["status", <|"execution_state" -> "busy"|>];
     rspMsg = msgNew["unknown", <|"status" -> "ok"|>, "ids" -> $session["socketMsg"]["ids"]];
     Switch[
         $session["socketMsg"]["header"]["msg_type"]
@@ -37,12 +39,15 @@ shellHandler[] := Module[
         $debugWrite[3, "send shell message!"];
         sendMsg[$socket["shell"], rspMsg]
     ];
+    iopubSend["status", <|"execution_state" -> "idle"|>];
 ];
 
 controlHandler[] := Module[
     {rspMsg}
     ,
     $debugWrite[2, "enter control handler!"];
+    $session["socketMsg"] = msgDeserialize @ SocketReadMessage[$socket["control"], "Multipart" -> True];
+    (* iopubSend["status", <|"execution_state" -> "busy"|>]; *)
     rspMsg = msgNew["unknown", <|"status" -> "ok"|>, "ids" -> $session["socketMsg"]["ids"]];
     Switch[
         $session["socketMsg"]["header"]["msg_type"]
@@ -58,12 +63,7 @@ controlHandler[] := Module[
             rspMsg["content"]["status"] = "error"
         ];
         If[
-            rspMsg["content"]["restart"]
-            ,
-            createSession[]
-            ,
-            $debugWrite[1, "quit", "bye-bye!"];
-            Quit[]
+            rspMsg["content"]["restart"], createSession[], $session["status"] = "shutdown";
         ];
         ,
         "interrupt_request", rspMsg["header"]["msg_type"] = "interrupt_reply";
@@ -76,6 +76,7 @@ controlHandler[] := Module[
             rspMsg["content"]["status"] = "error"
         ];
         ,
+        (* only when shell channel lose connect *)
         "kernel_info_request", rspMsg["header"]["msg_type"] = "kernel_info_reply";
         rspMsg["content"] = $kernelInfo;
         (* FIXME debug request *)
@@ -86,4 +87,5 @@ controlHandler[] := Module[
         $debugWrite[3, "send control message!"];
         sendMsg[$socket["control"], rspMsg]
     ];
+    (* iopubSend["status", <|"execution_state" -> "idle"|>]; *)
 ];
