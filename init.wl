@@ -67,19 +67,20 @@ loop[] := Module[
     While[
         True
         ,
-        readSocket = First[SocketWaitNext @ Lookup[$socket, {"shell", "control", "hb"}]];
         If[
-            readSocket === $socket["hb"]
+            $session["status"] == "shutdown"
             ,
-            (* heart beat: echo back *)
-            $debugWrite[2, "enter heart beat socket!"];
-            BinaryWrite[$socket["hb"], SocketReadMessage @ $socket["hb"]];
-            Continue[];
+            $debugWrite[1, "quit", "bye-bye!"];
+            Quit[]
         ];
-        $session["socketMsg"] = msgDeserialize @ SocketReadMessage[readSocket, "Multipart" -> True];
-        iopubSend["status", <|"execution_state" -> "busy"|>];
+        readSocket = First[SocketWaitNext @ Lookup[$socket, {"shell", "control", "hb"}]];
         Switch[
             readSocket
+            ,
+            (* heart beat: echo back *)
+            $socket["hb"], $debugWrite[2, "enter heart beat socket!"];
+            BinaryWrite[$socket["hb"], SocketReadMessage @ $socket["hb"]];
+            Continue[];
             ,
             $socket["shell"], shellHandler[];
             ,
@@ -87,7 +88,6 @@ loop[] := Module[
             ,
             _, $debugWrite[2, readSocket];
         ];
-        iopubSend["status", <|"execution_state" -> "idle"|>];
     ]
 ];
 

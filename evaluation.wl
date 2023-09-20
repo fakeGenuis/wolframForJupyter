@@ -23,43 +23,46 @@ createSession[] := Module[
 
 (* execute code and send results, return shell channel reply content *)
 
-execHandler[] := Module[{
-    code = $session["socketMsg"]["content"]["code"]
+execHandler[] := Module[
+    {
+        code = $session["socketMsg"]["content"]["code"]
+        ,
+        rspMsgContent = <|
+            "payload" -> {}
+            ,
+            "user_expressions" -> <||>
+            ,
+            "execution_count" -> $session["execution_count"]
+        |>
+        ,
+        shellMsgCache
+    }
     ,
-    rspMsgContent = <|
-        "payload" -> {}
-        ,
-        "user_expressions" -> <||>
-        ,
-        "execution_count" -> $session["execution_count"]
-    |>
-},
     $debugWrite[2, "enter exec handler!"];
     $session["status"] = "busy";
-    iopubSend["execute_input", <|"code" -> code|>, "ids" -> $session["socketMsg"]["ids"]];
+    iopubSend["execute_input", <|"code" -> code|>];
     LinkWrite[$session["link"], EnterTextPacket[code]];
     rspMsgContent["status"] = "ok";
     While[
         True
         ,
-        If[
-            !LinkReadQ[$session["link"]]
+        Which[
+            SocketReadyQ[$socket["control"]], shellMsgCache = $session["socketMsg"];
+            controlHandler[];
+            $session["socketMsg"] = shellMsgCache;
             ,
-            Pause[0.05];
-            controlHandle[];
-            Continue[]
+            LinkReadyQ[$session["link"]], pkt = LinkRead[$session["link"]];
+            If[
+                pkt == $Failed || Head[pkt] === LinkRead
+                ,
+                $debugWrite[1, "failed to read pkt from link"];
+                (* $Failed at frontend, no exception message *)
+                rspMsgContent["status"] = "abort";
+                Break[];
+            ];
+            (* FIXME reply to error in LinkWrite *)
+            pktRsp[pkt];
         ];
-        pkt = LinkRead[$session["link"]];
-        If[
-            pkt == $Failed || Head[pkt] === LinkRead
-            ,
-            $debugWrite[1, "failed to read pkt from link"];
-            (* $Failed at frontend, no exception message *)
-            rspMsgContent["status"] = "abort";
-            Break[];
-        ];
-        (* FIXME reply to error in LinkWrite *)
-        pktRsp[pkt];
     ];
     $session["status"] = "idle";
     rspMsgContent
