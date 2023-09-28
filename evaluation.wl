@@ -78,9 +78,10 @@ pktRsp[pkt_] := Switch[
     ,
     OutputNamePacket, $session["execution_count"] = First @ StringCases[First @ pkt, RegularExpression["Out\\[([0-9]+)\\]"] :> ToExpression["$1"]];
     ,
-    MessagePacket, iopubSend["stream", <|"name" -> "stderr", "text" -> ToString @ (List @@ pkt)|>];
+    MessagePacket, $session["message"] = List @@ pkt;
     ,
     TextPacket, iopubSend["stream", <|"name" -> "stdout", "text" -> First @ pkt|>];
+    $session["message"] = None;
     ,
     MenuPacket, If[
         First @ pkt == 1 && Last @ pkt == "Interrupt> "
