@@ -10,6 +10,13 @@ iopubSend[msgType_String, content_Association] := Module[
         msgType
         ,
         "execute_result" | "execute_input", msg["content"]["execution_count"] = $session["execution_count"];
+        ,
+        "stream", If[
+            StringLength @ msg["content"]["text"] > 0 && StringTake[msg["content"]["text"], -1] != "\n"
+            ,
+            msg["content"]["text"] = msg["content"]["text"] <> "\n"
+        ];
+        If[$session["message"] != None, msg["content"]["name"] = "stderr"];
     ];
     sendMsg[$socket["iopub"], msg];
 ];
