@@ -9,7 +9,7 @@ iopubSend[msgType_String, content_Association] := Module[
     Switch[
         msgType
         ,
-        "execute_result" | "execute_input", msg["content"]["execution_count"] = $session["execution_count"];
+        "execute_result" | "execute_input" | "error", msg["content"]["execution_count"] = $session["execution_count"];
         ,
         "stream", If[
             StringLength @ msg["content"]["text"] > 0 && StringTake[msg["content"]["text"], -1] != "\n"

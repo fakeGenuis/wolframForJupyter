@@ -11,12 +11,18 @@ createSession[] := Module[
         ,
         "execution_count" -> 1
         ,
+        "message" -> None
+        ,
         "socketMsg" -> <||>
     |>;
     $session["link"] = LinkLaunch[First[$CommandLine] <> " -wstp"];
     LinkWrite[$session["link"], Unevaluated[EvaluatePacket[$ProcessID]]];
     LinkRead[$session["link"]];
     $session["pid"] = First @ LinkRead[$session["link"]];
+    Block[{file = File[CreateFile["/tmp/wfj_pid"]]},
+        Write[file, $session["pid"]];
+        Close[file];
+    ];
     $debugWrite[2, StringTemplate["evaluation kernel (pid: ``) started!"][$session["pid"]]];
     $session["status"] = "idle";
 ];
@@ -62,6 +68,7 @@ execHandler[] := Module[
             ];
             (* FIXME reply to error in LinkWrite *)
             pktRsp[pkt];
+            (* If[$session["message"] =!= None, rspMsgContent["status"] = "error"]; *)
         ];
     ];
     $session["status"] = "idle";
@@ -79,8 +86,15 @@ pktRsp[pkt_] := Switch[
     OutputNamePacket, $session["execution_count"] = First @ StringCases[First @ pkt, RegularExpression["Out\\[([0-9]+)\\]"] :> ToExpression["$1"]];
     ,
     MessagePacket, $session["message"] = List @@ pkt;
+    (*Notify frontend a coming stderr*)
+    iopubSend["error", <|"status" -> "error"|>(* , "ids" -> $session["socketMsg"]["ids"] *)];
     ,
-    TextPacket, iopubSend["stream", <|"name" -> "stdout", "text" -> First @ pkt|>];
+    TextPacket, iopubSend[
+        "stream", <|"name" -> "stdout", "text" -> First @ pkt|>
+        (*FIXME ids here cause `emacs-jupyter' failed rendering stdout*)
+        (* , *)
+        (* "ids" -> $session["socketMsg"]["ids"] *)
+    ];
     $session["message"] = None;
     ,
     MenuPacket, If[
