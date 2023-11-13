@@ -44,13 +44,89 @@ currently, interrupt in jupyter is implemented by ~LinkInterrupt~. For signal
 interrupt see
 [[https://www.computerhope.com/unix/signals.htm][Linux Signals Help]]
 
-* TODO Features [0/6]
-- [ ] interrupt
+** Error handler
+In wolfram notebook
+#+begin_src Wolfram-Language :session test :async yes
+all = 10;
+Table[
+    Pause[0.05];
+    Print[i], {i, all}];
+1/0
+(* Table[Pause[0.05];Print[i^2], {i, all}]; *)
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+#+begin_example
+ter-python :session t
+#+end_example
+# [goto error]
+:
+:                                  1
+: Power::infy: Infinite expression - encountered.
+:                                  0
+: ComplexInfinity
+:END:
+
+#+begin_src jupyter-python :session test :async yes
+from time import sleep
+
+n_all = 10
+for i in range(n_all):
+    sleep(0.05)
+    print(i)
+1/0
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+#+begin_example
+ter-python :session
+#+end_example
+# [goto error]
+: ---------------------------------------------------------------------------
+: ZeroDivisionError                         Traceback (most recent call last)
+: Cell In[46], line 7
+:       5     sleep(0.05)
+:       6     print(i)
+: ----> 7 1/0
+:
+: ZeroDivisionError: division by zero
+:END:
+
+wrapped in =example= not reasonable to =jupyter=
+#+begin_src python :results output :sync
+from time import sleep
+
+n_all = 10
+for i in range(n_all):
+    sleep(0.05)
+    print(i)
+1/0
+#+end_src
+
+#+RESULTS:
+#+begin_example
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+#+end_example
+
+* TODO Features [2/6]
 - [ ] message stream output
 - [ ] ~Short~ with too long expression
 - [ ] log evaluation time
 - [ ] export
   [[https://nbconvert.readthedocs.io/en/latest/external_exporters.html][Customizing exporters — nbconvert 7.8.0 documentation]]
+- [X] interrupt
+- [X] ~%~ no content
 
 * Similar
 - WolframLanguageForJupyter
