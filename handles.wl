@@ -73,14 +73,21 @@ controlHandler[] := Module[
             rspMsg["content"]["restart"], createSession[], $session["status"] = "shutdown";
         ];
         ,
-        "interrupt_request", rspMsg["header"]["msg_type"] = "interrupt_reply";
-        TimeConstrained[
-            LinkInterrupt[$session["link"]];
-            $debugWrite[2, "evaluation session interrupt!"];
+        "interrupt_request", If[
+            (* only interrupt when kernel is busy *)
+            $session["status"] == "busy"
             ,
-            5
+            rspMsg["header"]["msg_type"] = "interrupt_reply";
+            TimeConstrained[
+                LinkInterrupt[$session["link"]];
+                $debugWrite[2, "evaluation session interrupt!"];
+                ,
+                5
+                ,
+                rspMsg["content"]["status"] = "error"
+            ];
             ,
-            rspMsg["content"]["status"] = "error"
+            $debugWrite[3, "kernel not busy, interrupt ignored!"];
         ];
         ,
         (* only when shell channel lose connect *)
