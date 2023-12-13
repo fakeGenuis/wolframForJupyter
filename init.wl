@@ -33,6 +33,28 @@ $kernelInfo = <|
     "banner" -> $Version
 |>;
 
+$config = <|
+    "max_text_length" -> 10^3
+    ,
+    "text_handler" -> (
+        If[
+            StringLength @ # > $config["max_text_length"]
+            ,
+            StringJoin[
+                StringTake[#, $config["max_text_length"]]
+                ,
+                "\n..." <> $debug["ColoredWrapper"][
+                    $debug["ColoredCodes"]["E"]
+                    ,
+                    StringTemplate["(`1` more characters hide)"][StringLength @ # - $config["max_text_length"]]
+                ]
+            ]
+            ,
+            #
+        ]&
+    )
+|>;
+
 (* communicate with jupyter *)
 (* see https://jupyter-client.readthedocs.io/en/stable/kernels.html# *)
 

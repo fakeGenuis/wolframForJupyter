@@ -122,7 +122,11 @@ pktRsp[pkt_] := Switch[
     ReturnTextPacket, iopubSend[
         "execute_result"
         ,
-        <|"data" -> <|"text/plain" -> First @ pkt|>, "metadata" -> <||>|>
+        <|
+            "data" -> <|"text/plain" -> $config["text_handler"] @ First @ pkt|>
+            ,
+            "metadata" -> <||>
+        |>
     ];
     ,
     _, $debugWrite[2, StringTemplate["unknown packet header: ``"] @ Head[pkt]];
