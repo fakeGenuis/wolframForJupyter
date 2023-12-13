@@ -4,9 +4,17 @@ $debug = <|
     "DebugLevel" -> 4
     ,
     (* alert, error, warning, info *)
-    "ColoredWrapper" -> {"A" -> 36, "E" -> 31, "W" -> 33, "I" -> 32}
+    "ColoredCodes" -> <|"A" -> 36, "E" -> 31, "W" -> 33, "I" -> 32|>
     ,
-    "Format" -> StringTemplate["\033[;`2`m(`1`) [<*DateString[\"ISODateTime\"]*>] `3`\033[0m `4`\n"]
+    "ColoredWrapper" -> StringTemplate["\033[;`1`m`2`\033[0m"]
+    ,
+    "Format" -> (
+        StringTemplate["`1` `2`\n"][
+            $debug["ColoredWrapper"][#2, StringTemplate["(`1`) [<*DateString[\"ISODateTime\"]*>] `2`"][#1, #3]]
+            ,
+            #4
+        ]&
+    )
     ,
     "IsMsg" -> (KeyExistsQ[#, "header"] && KeyExistsQ[#["header"], "msg_type"]&)
 |>;
@@ -17,7 +25,7 @@ $debugWrite[lvl_Integer, title_String, message_String] := If[
     WriteString[
         Streams["stdout"]
         ,
-        $debug["Format"][Sequence @@ $debug["ColoredWrapper"][[lvl]], title, message]
+        $debug["Format"][Sequence @@ $debug["ColoredCodes"][[lvl]], title, message]
     ]
 ];
 
