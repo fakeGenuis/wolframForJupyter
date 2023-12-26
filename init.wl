@@ -44,7 +44,7 @@ $config = <|
                 StringTake[#, $config["max_text_length"]]
                 ,
                 "\n..." <> $debug["ColoredWrapper"][
-                    $debug["ColoredCodes"]["E"]
+                    $debug["ColoredCodes"][[2, -1]]
                     ,
                     StringTemplate["(`1` more characters hide)"][StringLength @ # - $config["max_text_length"]]
                 ]

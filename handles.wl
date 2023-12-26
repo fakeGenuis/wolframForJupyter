@@ -20,7 +20,7 @@ iopubSend[msgType_String, content_Association] := Module[
             $session["message"] =!= None
             ,
             msg["content"]["name"] = "stderr";
-            msg["content"]["text"] = $debug["ColoredWrapper"][$debug["ColoredCodes"]["E"], msg["content"]["text"]]
+            msg["content"]["text"] = $debug["ColoredWrapper"][$debug["ColoredCodes"][[2, -1]], msg["content"]["text"]]
         ];
     ];
     sendMsg[$socket["iopub"], msg];
