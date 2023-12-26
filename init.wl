@@ -34,7 +34,9 @@ $kernelInfo = <|
 |>;
 
 $config = <|
-    "max_text_length" -> 10^3
+    "secret" -> "(* pray to god *)"
+    ,
+    "max_text_length" -> 2 * 10^3
     ,
     "text_handler" -> (
         If[
