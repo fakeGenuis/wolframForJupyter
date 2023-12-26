@@ -1,10 +1,10 @@
 
 $debug = <|
-    (* larger for more message, not bigger than length of ColoredWrapper *)
+    (* larger for more message, not bigger than length of ColoredCodes *)
     "DebugLevel" -> 4
     ,
     (* alert, error, warning, info *)
-    "ColoredCodes" -> <|"A" -> 36, "E" -> 31, "W" -> 33, "I" -> 32|>
+    "ColoredCodes" -> {"A" -> 36, "E" -> 31, "W" -> 33, "I" -> 32}
     ,
     "ColoredWrapper" -> StringTemplate["\033[;`1`m`2`\033[0m"]
     ,
