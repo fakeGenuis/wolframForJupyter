@@ -112,7 +112,7 @@ pktRsp[pkt_] := Switch[
         <|
             "data" -> <|
                 (* FIXME add html output *)
-                "text/plain" -> OutputForm[First @ pkt]
+                "text/plain" -> ToString @ OutputForm[First @ pkt]
             |>
             ,
             "metadata" -> <||>
