@@ -47,8 +47,16 @@ execHandler[] := Module[
     $debugWrite[2, "enter exec handler!"];
     $session["status"] = "busy";
     iopubSend["execute_input", <|"code" -> code|>];
-    LinkWrite[$session["link"], EnterTextPacket[code]];
     rspMsgContent["status"] = "ok";
+    (* runtime chnage configs of farther process *)
+    If[
+        StringStartsQ[code, $config["secret"]]
+        ,
+        pktRsp[ReturnExpressionPacket[ToExpression[code, InputForm]]];
+        $session["status"] = "idle";
+        Return[rspMsgContent]
+    ];
+    LinkWrite[$session["link"], EnterTextPacket[code]];
     While[
         True
         ,
