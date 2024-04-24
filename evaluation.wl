@@ -19,10 +19,6 @@ createSession[] := Module[
     LinkWrite[$session["link"], Unevaluated[EvaluatePacket[$ProcessID]]];
     LinkRead[$session["link"]];
     $session["pid"] = First @ LinkRead[$session["link"]];
-    Block[{file = File[CreateFile["/tmp/wfj_pid"]]},
-        Write[file, $session["pid"]];
-        Close[file];
-    ];
     $debugWrite[2, StringTemplate["evaluation kernel (pid: ``) started!"][$session["pid"]]];
     $session["status"] = "idle";
 ];
