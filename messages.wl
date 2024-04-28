@@ -1,4 +1,3 @@
-
 (* predefined variables, mostly for code readability *)
 
 $message = <|
@@ -17,6 +16,8 @@ $message = <|
         ,
         {StringLength @ "$1", "$2", "{$3}", "{$4}", "{$5}", "{$6}"}
     ]
+    ,
+    "HMACNotMatch" -> StringTemplate["HMAC signature not match!\nsocket: ``\ncalced: ``"]
 |>;
 
 (* HMAC signature of a message *)
@@ -116,11 +117,7 @@ msgDeserialize[socketMsg_ByteArray] := Module[
     If[
         msgInt["signature"] != signCalc
         ,
-        $debugWrite[
-            2
-            ,
-            StringTemplate["HMAC signature not match!\nsocket: ``\ncalced: ``"][msg["signature"], signCalc]
-        ]
+        $debugWrite[2, $message["HMACNOTMATCH"][msg["signature"], signCalc]]
     ];
     (* deserialize values of msgInt *)
     msgInt = MapAt[
@@ -144,5 +141,6 @@ sendMsg[socket_, msg_Association] := Module[
             StringToByteArray /@ Lookup[msgSerial, {"signature", "header", "parent_header", "metadata"}]
         )
     };
+    (* absurd here, mark "Multipart" end? *)
     ZeroMQLink`ZMQSocketWriteMessage[socket, StringToByteArray @ msgSerial["content"], "Multipart" -> False];
 ];

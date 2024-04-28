@@ -1,4 +1,3 @@
-
 (* evaluation session *)
 
 createSession[] := Module[
@@ -30,6 +29,8 @@ execHandler[] := Module[
         code = $session["socketMsg"]["content"]["code"]
         ,
         rspMsgContent = <|
+            "status" -> "ok"
+            ,
             "payload" -> {}
             ,
             "user_expressions" -> <||>
@@ -43,20 +44,23 @@ execHandler[] := Module[
     $debugWrite[2, "enter exec handler!"];
     $session["status"] = "busy";
     iopubSend["execute_input", <|"code" -> code|>];
-    rspMsgContent["status"] = "ok";
-    (* runtime chnage configs of farther process *)
+    (* runtime change configs of monitor kernel *)
     If[
         StringStartsQ[code, $config["secret"]]
         ,
         pktRsp[ReturnExpressionPacket[ToExpression[code, InputForm]]];
-        $session["status"] = "idle";
-        Return[rspMsgContent]
+        Goto[end];
     ];
+    (* FIXME only `ReturnTextPacket` valid *)
     LinkWrite[$session["link"], EnterTextPacket[code]];
+    (* pkts read loop *)
     While[
         True
         ,
         Which[
+            (* allow interrupt *)
+            (* FIXME code cell seems be executed line by line in link, *)
+            (* which means interrupt continues after line being executed *)
             SocketReadyQ[$socket["control"]], shellMsgCache = $session["socketMsg"];
             controlHandler[];
             $session["socketMsg"] = shellMsgCache;
@@ -75,8 +79,20 @@ execHandler[] := Module[
             (* If[$session["message"] =!= None, rspMsgContent["status"] = "error"]; *)
         ];
     ];
+    Label[end];
     $session["status"] = "idle";
     rspMsgContent
+];
+
+$config = <|"secret" -> "(* pray to god *)", "max_text_length" -> 2 * 10^3|>;
+
+textTruncate[s_String] := Module[{diff = StringLength[s] - $config["max_text_length"]},
+    If[diff <= 0, Return[s]];
+    StringTemplate["`1`\n...`2`"][
+        StringTake[s, $config["max_text_length"]]
+        ,
+        errWrapper @ StringTemplate["(`1` more characters hide)"][diff]
+    ]
 ];
 
 (* response to pkt read from $session["link"] *)
@@ -85,6 +101,7 @@ pktRsp[pkt_] := Switch[
     Head @ pkt
     ,
     InputNamePacket, $session["execution_count"] = First @ StringCases[First @ pkt, RegularExpression["In\\[([0-9]+)\\]"] :> ToExpression["$1"], 1];
+    (* exec finished, or aborted *)
     Break[];
     ,
     OutputNamePacket, $session["execution_count"] = First @ StringCases[First @ pkt, RegularExpression["Out\\[([0-9]+)\\]"] :> ToExpression["$1"], 1];
@@ -127,9 +144,7 @@ pktRsp[pkt_] := Switch[
         "execute_result"
         ,
         <|
-            "data" -> <|"text/plain" -> $config["text_handler"] @ First @ pkt|>
-            ,
-            "metadata" -> <||>
+            "data" -> <|"text/plain" -> textTruncate @ First @ pkt|>, "metadata" -> <||>
         |>
     ];
     ,

@@ -2,6 +2,10 @@
 
 BeginPackage["wolframForJupyter`", {"ZeroMQLink`"}];
 
+$config::usage = "$config is an association of runtime configurations."
+
+$session::usage = "$session is an association of runtime information."
+
 Begin["`Private`"]
 
 Get /@ {"messages.wl", "debug.wl", "evaluation.wl", "handles.wl"};
@@ -27,34 +31,11 @@ $kernelInfo = <|
         "pygments_lexer" -> "mathematica"
         ,
         "codemirror_mode" -> "mathematica"
-        (* , *)(* "nbconvert_exporter" -> "" *)
+        (* , *)
+        (* "nbconvert_exporter" -> "" *)
     |>
     ,
     "banner" -> $Version
-|>;
-
-$config = <|
-    "secret" -> "(* pray to god *)"
-    ,
-    "max_text_length" -> 2 * 10^3
-    ,
-    "text_handler" -> (
-        If[
-            StringLength @ # > $config["max_text_length"]
-            ,
-            StringJoin[
-                StringTake[#, $config["max_text_length"]]
-                ,
-                "\n..." <> $debug["ColoredWrapper"][
-                    $debug["ColoredCodes"][[2, -1]]
-                    ,
-                    StringTemplate["(`1` more characters hide)"][StringLength @ # - $config["max_text_length"]]
-                ]
-            ]
-            ,
-            #
-        ]&
-    )
 |>;
 
 (* communicate with jupyter *)
@@ -97,6 +78,7 @@ loop[] := Module[
             $debugWrite[1, "quit", "bye-bye!"];
             Quit[]
         ];
+        (* hb outside? never observed *)
         readSocket = First[SocketWaitNext @ Lookup[$socket, {"shell", "control", "hb"}]];
         Switch[
             readSocket

@@ -1,106 +1,83 @@
-
 (* if jupyter pending when kernel busy, then parent header always right *)
 
 iopubSend[msgType_String, content_Association] := Module[
-    {msg}
+    {contNew = content}
     ,
-    msg = msgNew[msgType, content];
-    $debugWrite[2, "send iopub message"];
+    $debugWrite[3, "send iopub message"];
     Switch[
         msgType
         ,
-        "execute_result" | "execute_input" | "error", msg["content"]["execution_count"] = $session["execution_count"];
+        "execute_result" | "execute_input" | "error", contNew["execution_count"] = $session["execution_count"];
         ,
         "stream", If[!StringEndsQ[#, "\n"], # = # <> "\n"]& @ contNew["text"];
         If[
             $session["message"] =!= None
             ,
-            msg["content"]["name"] = "stderr";
-            msg["content"]["text"] = $debug["ColoredWrapper"][$debug["ColoredCodes"][[2, -1]], msg["content"]["text"]]
+            contNew["name"] = "stderr";
+            contNew["text"] = errWrapper @ contNew["text"]
         ];
     ];
-    sendMsg[$socket["iopub"], msg];
+    sendMsg[$socket["iopub"], msgNew[msgType, contNew]];
 ];
 
 (* read request and reply, in shell channel *)
 
 shellHandler[] := Module[
-    {rspMsg}
+    {type = "unknown", content = <|"status" -> "ok"|>}
     ,
     $debugWrite[2, "enter shell handler!"];
     $session["socketMsg"] = msgDeserialize @ SocketReadMessage[$socket["shell"], "Multipart" -> True];
     iopubSend["status", <|"execution_state" -> "busy"|>];
-    rspMsg = msgNew["unknown", <|"status" -> "ok"|>, "ids" -> $session["socketMsg"]["ids"]];
     Switch[
         $session["socketMsg"]["header"]["msg_type"]
         ,
-        "execute_request", rspMsg["header"]["msg_type"] = "execute_reply";
-        rspMsg["content"] = execHandler[];
+        "execute_request", type = "execute_reply";
+        content = execHandler[];
         ,
-        "kernel_info_request", rspMsg["header"]["msg_type"] = "kernel_info_reply";
-        rspMsg["content"] = $kernelInfo;
+        "kernel_info_request", type = "kernel_info_reply";
+        content = $kernelInfo;
         (* FIXME inspect_request and other requests *)
     ];
-    If[
-        rspMsg["header"]["msg_type"] != "unknown"
-        ,
-        $debugWrite[3, "send shell message!"];
-        sendMsg[$socket["shell"], rspMsg]
-    ];
+    sendMsg[$socket["shell"], msgNew[type, content, "ids" -> None]];
     iopubSend["status", <|"execution_state" -> "idle"|>];
 ];
 
+tryPauseLink[type_String, content_Association] := TimeConstrained[
+    If[type === "close", LinkClose, LinkInterrupt] @ $session["link"];
+    $debugWrite[2, type <> " evaluation session succeed!"];
+    ,
+    5
+    ,
+    ReplacePart["status" -> "error"] @ content
+];
+
 controlHandler[] := Module[
-    {rspMsg}
+    {type = "unknown", content = <|"status" -> "ok"|>}
     ,
     $debugWrite[2, "enter control handler!"];
     $session["socketMsg"] = msgDeserialize @ SocketReadMessage[$socket["control"], "Multipart" -> True];
-    (* iopubSend["status", <|"execution_state" -> "busy"|>]; *)
-    rspMsg = msgNew["unknown", <|"status" -> "ok"|>, "ids" -> $session["socketMsg"]["ids"]];
     Switch[
         $session["socketMsg"]["header"]["msg_type"]
         ,
-        "shutdown_request", rspMsg["header"]["msg_type"] = "shutdown_reply";
-        rspMsg["content"]["restart"] = $session["socketMsg"]["content"]["restart"];
-        TimeConstrained[
-            LinkClose[$session["link"]];
-            $debugWrite[2, "evaluation session closed!"];
-            ,
-            5
-            ,
-            rspMsg["content"]["status"] = "error"
-        ];
-        If[
-            rspMsg["content"]["restart"], createSession[], $session["status"] = "shutdown";
-        ];
+        "shutdown_request", type = "shutdown_reply";
+        content = tryPauseLink["close", content];
+        content["restart"] = $session["socketMsg"]["content"]["restart"];
+        If[content["restart"], createSession[], $session["status"] = "shutdown"];
         ,
         "interrupt_request", If[
             (* only interrupt when kernel is busy *)
             $session["status"] == "busy"
             ,
-            rspMsg["header"]["msg_type"] = "interrupt_reply";
-            TimeConstrained[
-                LinkInterrupt[$session["link"]];
-                $debugWrite[2, "evaluation session interrupt!"];
-                ,
-                5
-                ,
-                rspMsg["content"]["status"] = "error"
-            ];
+            type = "interrupt_reply";
+            content = tryPauseLink["interrupt", content];
             ,
             $debugWrite[3, "kernel not busy, interrupt ignored!"];
         ];
         ,
         (* only when shell channel lose connect *)
-        "kernel_info_request", rspMsg["header"]["msg_type"] = "kernel_info_reply";
-        rspMsg["content"] = $kernelInfo;
+        "kernel_info_request", type = "kernel_info_reply";
+        content = $kernelInfo;
         (* FIXME debug request *)
     ];
-    If[
-        rspMsg["header"]["msg_type"] != "unknown"
-        ,
-        $debugWrite[3, "send control message!"];
-        sendMsg[$socket["control"], rspMsg]
-    ];
-    (* iopubSend["status", <|"execution_state" -> "idle"|>]; *)
+    sendMsg[$socket["control"], msgNew[type, content, "ids" -> None]];
 ];
