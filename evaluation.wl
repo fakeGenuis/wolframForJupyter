@@ -17,9 +17,9 @@ createSession[] := Module[
     |>;
     $session["link"] = LinkLaunch[First[$CommandLine] <> " -wstp"];
     LinkWrite[$session["link"], Unevaluated[EvaluatePacket[$ProcessID]]];
-    LinkRead[$session["link"]];
-    $session["pid"] = First @ LinkRead[$session["link"]];
-    $debugWrite[2, StringTemplate["evaluation kernel (pid: ``) started!"][$session["pid"]]];
+    (* skip `In[1]:= ` *)
+    $session["pid"] = Part[#, 2, 1]& @ Table[LinkRead[$session["link"]], {2}];
+    $debugWrite[1, StringTemplate["evaluation kernel (pid: ``) started!"][$session["pid"]]];
     $session["status"] = "idle";
 ];
 
@@ -84,10 +84,10 @@ execHandler[] := Module[
 pktRsp[pkt_] := Switch[
     Head @ pkt
     ,
-    InputNamePacket, $session["execution_count"] = First @ StringCases[First @ pkt, RegularExpression["In\\[([0-9]+)\\]"] :> ToExpression["$1"]];
+    InputNamePacket, $session["execution_count"] = First @ StringCases[First @ pkt, RegularExpression["In\\[([0-9]+)\\]"] :> ToExpression["$1"], 1];
     Break[];
     ,
-    OutputNamePacket, $session["execution_count"] = First @ StringCases[First @ pkt, RegularExpression["Out\\[([0-9]+)\\]"] :> ToExpression["$1"]];
+    OutputNamePacket, $session["execution_count"] = First @ StringCases[First @ pkt, RegularExpression["Out\\[([0-9]+)\\]"] :> ToExpression["$1"], 1];
     ,
     MessagePacket, $session["message"] = List @@ pkt;
     (*Notify frontend a coming stderr*)

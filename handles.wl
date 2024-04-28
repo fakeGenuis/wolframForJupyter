@@ -11,11 +11,7 @@ iopubSend[msgType_String, content_Association] := Module[
         ,
         "execute_result" | "execute_input" | "error", msg["content"]["execution_count"] = $session["execution_count"];
         ,
-        "stream", If[
-            StringLength @ msg["content"]["text"] > 0 && StringTake[msg["content"]["text"], -1] != "\n"
-            ,
-            msg["content"]["text"] = msg["content"]["text"] <> "\n"
-        ];
+        "stream", If[!StringEndsQ[#, "\n"], # = # <> "\n"]& @ contNew["text"];
         If[
             $session["message"] =!= None
             ,

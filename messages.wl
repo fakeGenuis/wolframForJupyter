@@ -44,10 +44,21 @@ hmac[key_String, message_String] := Module[
     ]
 ];
 
-Options[msgNew] = {"ids" -> None, "metadata" -> <||>};
+Options[msgNew] = {"ids" -> "", "metadata" -> <||>};
+
+msgNew["unknown", content_Association, OptionsPattern[]] := None;
 
 msgNew[type_String, content_Association, OptionsPattern[]] := <|
-    "ids" -> If[OptionValue["ids"] === None, StringToByteArray @ type, OptionValue["ids"]]
+    (* "": iopub, None: shell | control *)
+    "ids" -> Switch[
+        OptionValue["ids"]
+        ,
+        "", StringToByteArray @ type
+        ,
+        None, $session["socketMsg"]["ids"]
+        ,
+        _, OptionValue["ids"]
+    ]
     ,
     "header" -> <|
         "msg_id" -> CreateUUID[]
@@ -75,11 +86,9 @@ msgNew[type_String, content_Association, OptionsPattern[]] := <|
 
 msgSerialize[msg_Association] := Module[
  (* msgInt: intermediate msg with its values serialized *)
-    {msgInt = msg}
+    {msgInt = Map[$message["Serialize"], msg]}
     ,
     $debugWrite[3, "start message serialize!"];
-    (* serialize values of msgInt *)
-    msgInt = AssociationMap[$message["Serialize"] @ msg[#]&] @ Keys[msg];
     msgInt["signature"] = hmac[
         $connection["key"]
         ,
@@ -96,7 +105,7 @@ msgDeserialize[socketMsg_ByteArray] := Module[
     ,
     (* FIXME maybe cases when multi package recived? *)
     $debugWrite[3, "start message deserialize!"];
-    msgInt = First @ StringCases[$message["ParseRule"]] @ Quiet @ ByteArrayToString[socketMsg];
+    msgInt = First @ StringCases[Quiet @ ByteArrayToString[socketMsg], $message["ParseRule"], 1];
     (* msg ids is ByteArray type *)
     msgInt["ids"] = socketMsg[[ ;; msgInt["idsLen"]]];
     signCalc = hmac[
@@ -114,7 +123,11 @@ msgDeserialize[socketMsg_ByteArray] := Module[
         ]
     ];
     (* deserialize values of msgInt *)
-    (msgInt[#] = $message["Deserialize"] @ msgInt[#])& /@ {"header", "parent_header", "metadata", "content"};
+    msgInt = MapAt[
+        $message["Deserialize"]
+        ,
+        List /@ {"header", "parent_header", "metadata", "content"}
+    ] @ msgInt;
     $debugWrite[4, msgInt];
     msgInt
 ];
