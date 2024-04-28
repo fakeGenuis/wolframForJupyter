@@ -1,4 +1,3 @@
-
 $debug = <|
     (* larger for more message, not bigger than length of ColoredCodes *)
     "DebugLevel" -> 4
@@ -18,6 +17,8 @@ $debug = <|
     ,
     "IsMsg" -> (KeyExistsQ[#, "header"] && KeyExistsQ[#["header"], "msg_type"]&)
 |>;
+
+errWrapper[s_String] := $debug["ColoredWrapper"][$debug["ColoredCodes"][[2, -1]], s];
 
 $debugWrite[lvl_Integer, title_String, message_String] := If[
     lvl <= $debug["DebugLevel"]
