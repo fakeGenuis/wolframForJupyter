@@ -23,7 +23,7 @@ iopubSend[msgType_String, content_Association] := Module[
 (* read request and reply, in shell channel *)
 
 shellHandler[] := Module[
-    {type = "unknown", content = <|"status" -> "ok"|>}
+    {type = "unknown", content}
     ,
     $debugWrite[2, "enter shell handler!"];
     $session["socketMsg"] = msgDeserialize @ SocketReadMessage[$socket["shell"], "Multipart" -> True];
@@ -36,6 +36,8 @@ shellHandler[] := Module[
         ,
         "kernel_info_request", type = "kernel_info_reply";
         content = $kernelInfo;
+        ,
+        "complete_request", {type, content} = completeHandler[];
         (* FIXME inspect_request and other requests *)
     ];
     sendMsg[$socket["shell"], msgNew[type, content, "ids" -> None]];
@@ -52,7 +54,7 @@ tryPauseLink[type_String, content_Association] := TimeConstrained[
 ];
 
 controlHandler[] := Module[
-    {type = "unknown", content = <|"status" -> "ok"|>}
+    {type = "unknown", content}
     ,
     $debugWrite[2, "enter control handler!"];
     $session["socketMsg"] = msgDeserialize @ SocketReadMessage[$socket["control"], "Multipart" -> True];

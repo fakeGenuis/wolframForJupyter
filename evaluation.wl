@@ -84,7 +84,13 @@ execHandler[] := Module[
     rspMsgContent
 ];
 
-$config = <|"secret" -> "(* pray to god *)", "max_text_length" -> 2 * 10^3|>;
+$config = <|
+    "secret" -> "(* pray to god *)"
+    ,
+    "max_text_length" -> 2 * 10^3
+    ,
+    "complete_min_length" -> 3
+|>;
 
 textTruncate[s_String] := Module[{diff = StringLength[s] - $config["max_text_length"]},
     If[diff <= 0, Return[s]];
@@ -149,4 +155,37 @@ pktRsp[pkt_] := Switch[
     ];
     ,
     _, $debugWrite[2, StringTemplate["unknown packet header: ``"] @ Head[pkt]];
+];
+
+$complete = <|
+    "end_with_prefix" -> RegularExpression["[a-zA-Z$]+[a-zA-Z0-9$]*"] ~~ EndOfString
+    ,
+    "start_with_suffix" -> StartOfString ~~ RegularExpression["[a-zA-Z0-9$]*"]
+|>;
+
+completeHandler[] := Module[
+    {
+        content = $session["socketMsg"]["content"]
+        ,
+        before
+        ,
+        end
+        ,
+        rspMsgContent = <|"status" -> "ok", "metadata" -> <||>|>
+        ,
+        symbolPre
+    }
+    ,
+    {before, end} = StringTakeDrop[content["code"], content["cursor_pos"]];
+    symbolPre = If[
+        Length @ # == 0 || (StringLength @ First[#] < $config["complete_min_length"])
+        ,
+        Return[{"unknown", <||>}]
+        ,
+        First @ #
+    ]& @ StringCases[before, $complete["end_with_prefix"]];
+    rspMsgContent["matches"] = Flatten[Names[# <> symbolPre <> "*"]& /@ $ContextPath];
+    rspMsgContent["cursor_start"] = content["cursor_pos"] - StringLength @ symbolPre;
+    rspMsgContent["cursor_end"] = content["cursor_pos"] + StringLength @ First @ StringCases[end, $complete["start_with_suffix"]];
+    {"complete_reply", rspMsgContent}
 ];
