@@ -44,15 +44,48 @@ currently, interrupt in jupyter is implemented by ~LinkInterrupt~. For signal
 interrupt see
 [[https://www.computerhope.com/unix/signals.htm][Linux Signals Help]]
 
+*Notation:*
+- client :: jupyter front end (i.e. browser tab / vscode / emacs-jupyter)
+- kernel :: the monitor process client communicate with
+- link :: the wolfram language evaluation take place, monitored by kernel
 
-* TODO Features [2/6]
-- [ ] message stream output
+** Code input
+Currently, codes are input as ~EnterTextPacket~ to link. That makes output
+render easily, since output being wrapped inside ~ReturnTextPacket~. But have
+following downside:
+1. unicode garbled
+2. further handler difficult (e.g. ~Short~)
+3. code completion hard implement (see below)
+
+** Asynchronous Execution
+~LocalSubmit~ failed inside WSTP link, then there's no "caveat for asynchronous
+output" (mentioned in jupyter client documentation). Anyway, why not launch a
+new link (jupyter session)?
+
+** Completion
+Where should completion occurs, in kernel or link? Jupyter's answer is surely
+the later, since the ~complete_request~ being send from shell channel. And the
+symbols in link is non-awareable to kernel. (for simple, currently front)
+
+Then, the problem emerge when completion request arrive at link busy status. But
+like in =jupyter-python=, is ok for link to ignore those requests (check it's
+the case). And for completion inside link, we need ~ReturnPacket~ or
+~ReturnExpressionPacket~ to store matches in ~List~ (not string of lengthy
+list), which is not implemented.
+
+Other problem is that ~execute_count~ get increase when handle completion
+request, see ~$Line~ variable for maintain it.
+
+* TODO Features [3/8]
+- [ ] check completion request after link go from busy to idle
+- [ ] code completion
 - [ ] ~Short~ with too long expression
 - [ ] log evaluation time
 - [ ] export
   [[https://nbconvert.readthedocs.io/en/latest/external_exporters.html][Customizing exporters — nbconvert 7.8.0 documentation]]
 - [X] interrupt
 - [X] ~%~ no content
+- [X] message stream output
 
 * Similar
 - WolframLanguageForJupyter
