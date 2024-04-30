@@ -163,6 +163,24 @@ $complete = <|
     "start_with_suffix" -> StartOfString ~~ RegularExpression["[a-zA-Z0-9$]*"]
 |>;
 
+(* TODO more type: keyword module *)
+
+symbolType[s_String] := Which[If[
+    Context[s] == "Global`"
+    ,
+    ToExpression[s, InputForm, DownValues]
+    ,
+    SyntaxInformation @ ToExpression[s]
+] =!= {}, "function", True, "variable"];
+
+boxStringRs = <|
+    "StyleBox[\"" ~~ (a : WordCharacter..) ~~ "\", \"TI\"]" :> a
+    ,
+    "SubscriptBox[" ~~ (a : WordCharacter..) ~~ ", " ~~ (b : WordCharacter..) ~~ "]" :> a <> "_" <> b
+|>;
+
+symbolSignature[s_String] := "Foo";
+
 completeHandler[] := Module[
     {
         content = $session["socketMsg"]["content"]
@@ -187,5 +205,6 @@ completeHandler[] := Module[
     rspMsgContent["matches"] = Flatten[Names[# <> symbolPre <> "*"]& /@ $ContextPath];
     rspMsgContent["cursor_start"] = content["cursor_pos"] - StringLength @ symbolPre;
     rspMsgContent["cursor_end"] = content["cursor_pos"] + StringLength @ First @ StringCases[end, $complete["start_with_suffix"]];
+    rspMsgContent["metadata"]["_jupyter_types_experimental"] = <|"text" -> #, "type" -> symbolType[#], "signature" -> symbolSignature[#]|>& /@ rspMsgContent["matches"];
     {"complete_reply", rspMsgContent}
 ];
