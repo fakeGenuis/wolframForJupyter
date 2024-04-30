@@ -163,6 +163,37 @@ $complete = <|
     "start_with_suffix" -> StartOfString ~~ RegularExpression["[a-zA-Z0-9$]*"]
 |>;
 
+inspectHandler[] := Module[
+    {
+        content = $session["socketMsg"]["content"]
+        ,
+        rspMsgContent = <|"status" -> "ok", "metadata" -> <||>|>
+        ,
+        beforeEnd
+        ,
+        symbol
+    }
+    ,
+    beforeEnd = StringTakeDrop[content["code"], content["cursor_pos"]];
+    symbol = StringJoin[
+        If[# === {}, "", First @ #]& @ StringCases[First @ beforeEnd, $complete["end_with_prefix"]]
+        ,
+        First @ StringCases[Last @ beforeEnd, $complete["start_with_suffix"]]
+    ];
+    If[
+        rspMsgContent["found"] = symbol =!= ""
+        ,
+        rspMsgContent["data"] = <|
+            "text/plain" -> ToString @ First @ StringSplit[Information[symbol, "Usage"], "\n"]
+            ,
+            "debug" -> symbol
+        |>
+        ,
+        Return[rspMsgContent]
+    ];
+    rspMsgContent
+];
+
 (* TODO more type: keyword module *)
 
 symbolType[s_String] := Which[If[

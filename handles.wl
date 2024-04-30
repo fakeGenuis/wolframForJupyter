@@ -38,6 +38,9 @@ shellHandler[] := Module[
         content = $kernelInfo;
         ,
         "complete_request", {type, content} = completeHandler[];
+        ,
+        "inspect_request", type = "inspect_reply";
+        content = inspectHandler[];
         (* FIXME inspect_request and other requests *)
     ];
     sendMsg[$socket["shell"], msgNew[type, content, "ids" -> None]];
