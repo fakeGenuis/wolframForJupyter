@@ -178,6 +178,8 @@ inspectHandler[] := Module[
         symbol
     }
     ,
+    (* FIXME inspect in jupyter browser *)
+    content["cursor_pos"] = Min[Length[content["code"]], content["cursor_pos"]];
     beforeEnd = StringTakeDrop[content["code"], content["cursor_pos"]];
     symbol = StringJoin[
         If[# === {}, "", First @ #]& @ StringCases[First @ beforeEnd, $complete["end_with_prefix"]]
