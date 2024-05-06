@@ -8,7 +8,7 @@ $session::usage = "$session is an association of runtime information."
 
 Begin["`Private`"]
 
-Get /@ {"messages.wl", "debug.wl", "evaluation.wl", "handles.wl"};
+Get /@ {"messages.wl", "stream.wl", "evaluation.wl", "handles.wl"};
 
 $kernelInfo = <|
     "status" -> "ok"
