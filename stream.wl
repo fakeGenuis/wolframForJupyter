@@ -59,20 +59,18 @@ $debug = <|
     (* alert, error, warning, info *)
     "ColoredCodes" -> {"A" -> 36, "E" -> 31, "W" -> 33, "I" -> 32}
     ,
-    "ColoredWrapper" -> StringTemplate["\033[;`1`m`2`\033[0m"]
-    ,
-    "Format" -> (
-        StringTemplate["`1` `2`\n"][
-            $debug["ColoredWrapper"][#2, StringTemplate["(`1`) [<*DateString[\"ISODateTime\"]*>] `2`"][#1, #3]]
-            ,
-            #4
-        ]&
-    )
+    "Format" -> (Composition[
+        s |-> StringTemplate["`1` `2`\n"][s, #4]
+        ,
+        s |-> $ansi["wrapper"][#2, s, ""]
+        ,
+        StringTemplate["(`1`) [<*DateString[\"ISODateTime\"]*>] `2`"]
+    ][#1, #3]&)
     ,
     "IsMsg" -> (KeyExistsQ[#, "header"] && KeyExistsQ[#["header"], "msg_type"]&)
 |>;
 
-errWrapper[s_String] := $debug["ColoredWrapper"][$debug["ColoredCodes"][[2, -1]], s];
+errWrapper[s_String] := $ansi["wrapper"][$debug["ColoredCodes"][[2, -1]], s, ""];
 
 $debugWrite[lvl_Integer, title_String, message_String] := If[
     lvl <= $debug["DebugLevel"]
@@ -95,8 +93,12 @@ $config = <|
     ,
     "max_text_length" -> 2 * 10^3
     ,
+    "doc_PageWidth" -> 4 * 78
+    ,
     "complete_min_length" -> 3
 |>;
+
+SetOptions[$Output, PageWidth -> $config["doc_PageWidth"]];
 
 textTruncate[s_String] := Module[{diff = StringLength[s] - $config["max_text_length"]},
     If[diff <= 0, Return[s]];
