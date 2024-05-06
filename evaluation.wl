@@ -84,23 +84,6 @@ execHandler[] := Module[
     rspMsgContent
 ];
 
-$config = <|
-    "secret" -> "(* pray to god *)"
-    ,
-    "max_text_length" -> 2 * 10^3
-    ,
-    "complete_min_length" -> 3
-|>;
-
-textTruncate[s_String] := Module[{diff = StringLength[s] - $config["max_text_length"]},
-    If[diff <= 0, Return[s]];
-    StringTemplate["`1`\n...`2`"][
-        StringTake[s, $config["max_text_length"]]
-        ,
-        errWrapper @ StringTemplate["(`1` more characters hide)"][diff]
-    ]
-];
-
 (* response to pkt read from $session["link"] *)
 
 pktRsp[pkt_] := Switch[
