@@ -1,3 +1,57 @@
+strRep1By1[s_String, rules_List] := (Composition @@ (r |-> StringReplace[#, r]&) /@ (Reverse @ rules)) @ s;
+
+boxRE = <|
+    "SBB" -> RegularExpression[
+        (* yeah, nested `StyleBox` only for retaining double quotes, thank you wolfram! *)
+        "StyleBox\\[\"\\\\\"\\\\!\\\\\\(\\\\\\*(.+?)\\\\\\)\\\\\"\", ShowStringCharacters->True\\]"
+    ]
+    ,
+    "SB" -> RegularExpression["StyleBox\\[\"(.+?)\", \"(.+?)\"\\]"]
+    ,
+    "SsB" -> RegularExpression["SubscriptBox\\[\"(.+?)\", \"(.+?)\"\\]"]
+    ,
+    "sep" -> RegularExpression["\"(}\\])*, (RowBox\\[{)*\""]
+|>;
+
+$ansi = <|
+    "wrapper" -> StringTemplate["\033[`1`m`2`\033[0;`3`m"]
+    ,
+    "shrinker" -> (
+        s |-> strRep1By1[s, #]& @ {
+            RegularExpression["m\033\\["] :> ";"
+            ,
+            RegularExpression["\033\\[([0-9;]+)m"] :> StringTemplate["\033[``m"][
+                StringRiffle[Reverse @ DeleteDuplicates @ Reverse @ StringSplit["$1", ";"], ";"]
+            ]
+        }
+    )
+|>;
+
+Options[toANSI] = {"plain" -> False};
+
+toANSI[s_String, color_String, OptionsPattern[]] := Module[
+    {wrapper = If[OptionValue["plain"], StringTemplate["`2`"], $ansi["wrapper"]]}
+    ,
+    Composition[
+        $ansi["shrinker"]
+        ,
+        wrapper[color, #, "0"]&
+        ,
+        (* hope there never being "Qu0tE" in usage *)
+        StringReplace[#, {"," -> ", ", "Qu0tE" -> "\""}]&
+        ,
+        StringDelete[#, {boxRE["sep"], "RowBox[{\"", "\"}]", "\""}]&
+        ,
+        strRep1By1[s, #]&
+    ] @ {
+        boxRE["SBB"] :> StringTemplate["\"Qu0tE\", ``, \"Qu0tE\""][StringReplace[StringDelete["$1", "\\"], "," -> ", "]]
+        ,
+        boxRE["SB"] :> StringTemplate["\"``\""][wrapper[#, "$1", color]& @ Switch["$2", "TI", "3", "TR", color, _, "5"]]
+        ,
+        boxRE["SsB"] :> StringTemplate["\"$1``\""] @ wrapper["4", "$2", color]
+    }
+];
+
 $debug = <|
     (* larger for more message, not bigger than length of ColoredCodes *)
     "DebugLevel" -> 4

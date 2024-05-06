@@ -146,6 +146,27 @@ $complete = <|
     "start_with_suffix" -> StartOfString ~~ RegularExpression["[a-zA-Z0-9$]*"]
 |>;
 
+docGen[symbol_String, level_Integer] := Module[
+    {usage}
+    ,
+    usage = StringReplace[
+        Information[symbol, "Usage"]
+        ,
+        RegularExpression["\!\(\*(.+?)\)"] :> toANSI["$1", "36", "plain" -> (level === 0)]
+    ];
+    StringRiffle[
+        StringTemplate["``\n``"][$ansi["wrapper"]["31", #1, ""], #2]& @@@ Join[{{"Usage:", usage}}, If[level === 1, #, {}]]& @ {
+            {"Attributes:", Information[symbol, "Attributes"]}
+            ,
+            {"Options:", ToString @ TableForm @ Options[Symbol @ symbol]}
+            ,
+            {"Documentation(Web):", Information[symbol, "Documentation"]["Web"]}
+        }
+        ,
+        "\n\n"
+    ]
+];
+
 inspectHandler[] := Module[
     {
         content = $session["socketMsg"]["content"]
@@ -166,18 +187,14 @@ inspectHandler[] := Module[
     If[
         rspMsgContent["found"] = symbol =!= ""
         ,
-        rspMsgContent["data"] = <|
-            "text/plain" -> ToString @ First @ StringSplit[Information[symbol, "Usage"], "\n"]
-            ,
-            "debug" -> symbol
-        |>
+        rspMsgContent["data"] = <|"text/plain" -> docGen[symbol, content["detail_level"]]|>
         ,
         Return[rspMsgContent]
     ];
     rspMsgContent
 ];
 
-(* TODO more type: keyword module *)
+(* TODO more type: keyword, module *)
 
 symbolType[s_String] := Which[If[
     Context[s] == "Global`"
@@ -186,12 +203,6 @@ symbolType[s_String] := Which[If[
     ,
     SyntaxInformation @ ToExpression[s]
 ] =!= {}, "function", True, "variable"];
-
-boxStringRs = <|
-    "StyleBox[\"" ~~ (a : WordCharacter..) ~~ "\", \"TI\"]" :> a
-    ,
-    "SubscriptBox[" ~~ (a : WordCharacter..) ~~ ", " ~~ (b : WordCharacter..) ~~ "]" :> a <> "_" <> b
-|>;
 
 symbolSignature[s_String] := "Foo";
 
