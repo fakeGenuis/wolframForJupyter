@@ -47,17 +47,18 @@ shellHandler[] := Module[
     iopubSend["status", <|"execution_state" -> "idle"|>];
 ];
 
-tryPauseLink[type_String, content_Association] := TimeConstrained[
+tryPauseLink[type_String] := TimeConstrained[
     If[type === "close", LinkClose, LinkInterrupt] @ $session["link"];
     $debugWrite[2, type <> " evaluation session succeed!"];
+    "ok"
     ,
     5
     ,
-    ReplacePart["status" -> "error"] @ content
+    "error"
 ];
 
 controlHandler[] := Module[
-    {type = "unknown", content}
+    {type = "unknown", content, shellMsgCache}
     ,
     $debugWrite[2, "enter control handler!"];
     $session["socketMsg"] = msgDeserialize @ SocketReadMessage[$socket["control"], "Multipart" -> True];
@@ -65,16 +66,24 @@ controlHandler[] := Module[
         $session["socketMsg"]["header"]["msg_type"]
         ,
         "shutdown_request", type = "shutdown_reply";
-        content = tryPauseLink["close", content];
-        content["restart"] = $session["socketMsg"]["content"]["restart"];
-        If[content["restart"], createSession[], $session["status"] = "shutdown"];
+        content = $session["socketMsg"]["content"];
+        content["status"] = tryPauseLink["close"];
+        If[
+            content["restart"] && content["status"] != "error"
+            ,
+            shellMsgCache = $session["socketMsg"];
+            createSession[];
+            $session["socketMsg"] = shellMsgCache;
+            ,
+            $session["status"] = "shutdown"
+        ];
         ,
         "interrupt_request", If[
             (* only interrupt when kernel is busy *)
             $session["status"] == "busy"
             ,
             type = "interrupt_reply";
-            content = tryPauseLink["interrupt", content];
+            content = <|"status" -> tryPauseLink["interrupt"]|>;
             ,
             $debugWrite[3, "kernel not busy, interrupt ignored!"];
         ];
