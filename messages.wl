@@ -106,7 +106,16 @@ msgDeserialize[socketMsg_ByteArray] := Module[
     ,
     (* FIXME maybe cases when multi package recived? *)
     $debugWrite[3, "start message deserialize!"];
-    msgInt = First @ StringCases[Quiet @ ByteArrayToString[socketMsg], $message["ParseRule"], 1];
+    msgInt = StringCases[Quiet @ ByteArrayToString[socketMsg], $message["ParseRule"], 1];
+    (* in case some non-parsable packages recived *)
+    If[
+        msgInt === {}
+        ,
+        $debugWrite[2, "unknown message"];
+        Return[<|"header" -> <|"msg_type" -> "unknown"|>|>]
+        ,
+        msgInt = First @ msgInt
+    ];
     (* msg ids is ByteArray type *)
     msgInt["ids"] = socketMsg[[ ;; msgInt["idsLen"]]];
     signCalc = hmac[

@@ -58,6 +58,9 @@ execHandler[] := Module[
         True
         ,
         Which[
+            (* stop read pkt in case session restart *)
+            $session["status"] != "busy", Break[];
+            ,
             (* allow interrupt *)
             (* FIXME code cell seems be executed line by line in link, *)
             (* which means interrupt continues after line being executed *)
@@ -65,6 +68,8 @@ execHandler[] := Module[
             controlHandler[];
             $session["socketMsg"] = shellMsgCache;
             ,
+            (* only handle pkt when kernel is busy, *)
+            (* if not, it may continue from a kernel restart *)
             LinkReadyQ[$session["link"]], pkt = LinkRead[$session["link"]];
             If[
                 pkt == $Failed || Head[pkt] === LinkRead
