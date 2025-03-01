@@ -187,9 +187,9 @@ inspectHandler[] := Module[
     content["cursor_pos"] = Min[Length[content["code"]], content["cursor_pos"]];
     beforeEnd = StringTakeDrop[content["code"], content["cursor_pos"]];
     symbol = StringJoin[
-        If[# === {}, "", First @ #]& @ StringCases[First @ beforeEnd, $complete["end_with_prefix"]]
+        If[# === {}, "", First @ #]& @ StringCases[First @ beforeEnd, $complete["end_with_prefix"], 1]
         ,
-        First @ StringCases[Last @ beforeEnd, $complete["start_with_suffix"]]
+        First @ StringCases[Last @ beforeEnd, $complete["start_with_suffix"], 1]
     ];
     If[
         rspMsgContent["found"] = symbol =!= ""
@@ -233,10 +233,10 @@ completeHandler[] := Module[
         Return[{"unknown", <||>}]
         ,
         First @ #
-    ]& @ StringCases[before, $complete["end_with_prefix"]];
+    ]& @ StringCases[before, $complete["end_with_prefix"], 1];
     rspMsgContent["matches"] = Flatten[Names[# <> symbolPre <> "*"]& /@ $ContextPath];
     rspMsgContent["cursor_start"] = content["cursor_pos"] - StringLength @ symbolPre;
-    rspMsgContent["cursor_end"] = content["cursor_pos"] + StringLength @ First @ StringCases[end, $complete["start_with_suffix"]];
+    rspMsgContent["cursor_end"] = content["cursor_pos"] + StringLength @ First @ StringCases[end, $complete["start_with_suffix"], 1];
     rspMsgContent["metadata"]["_jupyter_types_experimental"] = <|"text" -> #, "type" -> symbolType[#], "signature" -> symbolSignature[#]|>& /@ rspMsgContent["matches"];
     {"complete_reply", rspMsgContent}
 ];
