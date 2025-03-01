@@ -3,22 +3,29 @@
 # https://support.wolfram.com/12473?src=mathematica
 # TODO seems there is another binary call `ELProver` in new versions of `mathematica`
 BINARYS=(math mcc mathematica wolfram Mathematica MathKernel WolframKernel)
+# NOTE keep those from =aur= helper untouchedj
+# NOTE math == MathKernel = wolfram = WolframKernel
+# NOTE wolframnb == WolframNB
+# BINARYS=(ELProver MathKernel WolframKernel WolframNB math mcc wolfram wolframnb wolframscript)
+
+# manually installed path from mma.iso
 MMA_PATH=/usr/local/Wolfram/Mathematica/
+
+LINK_PATH=~/.local/bin/
 
 link_bin() {
     ver="$1"
     for bi in "${BINARYS[@]}"; do
-        ln -sfv $MMA_PATH"$ver"/Executables/"$bi" /usr/local/bin/"$bi"
+        ln -sfv $MMA_PATH"$ver"/Executables/"$bi" $LINK_PATH"$bi"
     done
-    ln -sfv $MMA_PATH"$ver"/SystemFiles/Kernel/Binaries/Linux-x86-64/wolframscript /usr/bin/wolframscript
+    ln -sfv $MMA_PATH"$ver"/SystemFiles/Kernel/Binaries/Linux-x86-64/wolframscript $LINK_PATH"wolframscript"
 }
 
-# do this if you want a `mathematica` installation with aur helper
 rm_links() {
     for bi in "${BINARYS[@]}"; do
-        ls -l "$(which "${bi:?}")" && rm -fv "$(which "${bi:?}")" || exit
+        ls -l $LINK_PATH"${bi:?}" && rm -fv $LINK_PATH"${bi:?}" || exit
     done
-    ls -l "$(which wolframscript)" && rm -fv "$(which wolframscript)" || exit
+    ls -l $LINK_PATH"wolframscript" && rm -fv $LINK_PATH"wolframscript" || exit
 }
 
 other_vers() {
@@ -27,30 +34,31 @@ other_vers() {
 }
 
 switch_vers() {
-    CUR_VERSION=$(realpath "$(which Mathematica)" | cut -d'/' -f6)
-    [[ -n "$CUR_VERSION" ]] && echo "Current Mathematica version ${CUR_VERSION}." || echo "Not available Mathematica linked!"
+    CUR_VERSION=$(realpath "$(which wolfram)" | cut -d'/' -f6)
+    [[ -n "$CUR_VERSION" ]] && echo "Current wolfram version ${CUR_VERSION}." || echo "No available wolfram linked!"
 
     echo "Select another version:"
     select ver in $(other_vers "$CUR_VERSION"); do
-        echo "Switch to Mathematica version ${ver}."
+        echo "Switch to wolfram version ${ver}."
         link_bin "$ver"
         break
     done
 }
 
 case "$1" in
-    --remove)
-        rm_links
-        ;;
-    --switch)
-        switch_vers
-        ;;
-    *)
-        cat <<EOF
-sudo ./mmaVS.sh [Options]
+--remove)
+    rm_links
+    ;;
+--switch)
+    switch_vers
+    ;;
+*)
+    cat <<EOF
+./mmaVS.sh [Options]
 change version or remove links of mathematica in your \$PATH.
 
---remove     remove links
+--remove     remove links (do this before a new fresh installation)
 --switch     change version (by relink)
 EOF
+    ;;
 esac
