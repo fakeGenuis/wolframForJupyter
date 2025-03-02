@@ -100,12 +100,12 @@ $config = <|
     ,
     "max_text_length" -> 2 * 10^3
     ,
-    "doc_PageWidth" -> 4 * 78
+    "doc_PageWidth" -> 78
     ,
     "complete_min_length" -> 3
 |>;
 
-SetOptions[$Output, PageWidth -> $config["doc_PageWidth"]];
+SetOptions[$Output, PageWidth -> 4 * $config["doc_PageWidth"]];
 
 textTruncate[s_String] := Module[{diff = StringLength[s] - $config["max_text_length"]},
     If[diff <= 0, Return[s]];
@@ -121,13 +121,13 @@ docGen[symbol_String, level_Integer] := Module[
     ,
     usage = StringReplace[
         (* TODO symbol value or definitions here? *)
-        Information[symbol, "Usage"]
+        usageOrValue @ symbol
         ,
         (* NOTE colored string may not supported in mini-buffer *)
         RegularExpression["\!\(\*(.+?)\)"] :> toANSI["$1", "36", "plain" -> (level === 0)]
     ];
     StringRiffle[
-        StringTemplate["``\n``"][$ansi["wrapper"]["31", #1, ""], #2]& @@@ Join[{{"Usage:", usage}}, If[level === 1, #, {}]]& @ {
+        StringTemplate["``\n``"][$ansi["wrapper"]["31", #1, ""], #2]& @@@ Join[{usage}, If[level === 1, #, {}]]& @ {
             {"Attributes:", Information[symbol, "Attributes"]}
             ,
             {"Options:", ToString @ TableForm @ Options[Symbol @ symbol]}
@@ -136,6 +136,24 @@ docGen[symbol_String, level_Integer] := Module[
         }
         ,
         "\n\n"
+    ]
+];
+
+usageOrValue[symbol_String] := Module[
+    {
+        tos = (
+            ToString[#, PageWidth -> $config["doc_PageWidth"], CharacterEncoding -> "ASCII"]&
+        )
+    }
+    ,
+    Which[
+        Context[symbol] === "System`", {"Usage:", Information[symbol, "Usage"]}
+        ,
+        symbolType @ symbol === "function", {"Definition:", tos @ Short[Definition[symbol], 3]}
+        ,
+        symbolType @ symbol === "variable", {"Value:", tos @ Short[First @ Values @ OwnValues[symbol], 3]}
+        ,
+        True, {"Usage:", Information[symbol, "Usage"]}
     ]
 ];
 
