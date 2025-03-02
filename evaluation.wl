@@ -203,13 +203,19 @@ inspectHandler[] := Module[
 
 (* TODO more type: keyword, module *)
 
-symbolType[s_String] := Which[If[
-    Context[s] == "Global`"
+symbolType[s_String] := Which[
+    If[
+        Context[s] == "Global`"
+        ,
+        ToExpression[s, InputForm, DownValues]
+        ,
+        SyntaxInformation @ ToExpression[s]
+    ] =!= {}, "function"
     ,
-    ToExpression[s, InputForm, DownValues]
+    MemberQ[{"True", "False", "None", "Infinity", "ComplexInfinity"}, s], "constant"
     ,
-    SyntaxInformation @ ToExpression[s]
-] =!= {}, "function", True, "variable"];
+    True, "variable"
+];
 
 symbolSignature[s_String] := "Foo";
 
