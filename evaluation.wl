@@ -234,9 +234,31 @@ completeHandler[] := Module[
         ,
         First @ #
     ]& @ StringCases[before, $complete["end_with_prefix"], 1];
-    rspMsgContent["matches"] = Flatten[Names[# <> symbolPre <> "*"]& /@ $ContextPath];
+    rspMsgContent["matches"] = getNamesFromPrefix @ symbolPre;
     rspMsgContent["cursor_start"] = content["cursor_pos"] - StringLength @ symbolPre;
     rspMsgContent["cursor_end"] = content["cursor_pos"] + StringLength @ First @ StringCases[end, $complete["start_with_suffix"], 1];
     rspMsgContent["metadata"]["_jupyter_types_experimental"] = <|"text" -> #, "type" -> symbolType[#], "signature" -> symbolSignature[#]|>& /@ rspMsgContent["matches"];
     {"complete_reply", rspMsgContent}
 ];
+
+(* Get names start with prefix_ *)
+
+getNamesFromPrefix[prefix_] := Module[
+    {}
+    ,
+    (* in running session first, or in system default *)
+    If[
+        $session["status"] === "idle"
+        ,
+        $debugWrite[4, "completion from link!"];
+        LinkWrite[
+            $session["link"]
+            ,
+            Unevaluated[EvaluatePacket[Flatten[Names[# <> prefix <> "*"]& /@ $ContextPath]]]
+        ];
+        Part[#, 1]& @ LinkRead[$session["link"]]
+        ,
+        $debugWrite[4, "completion from kernel!"];
+        Flatten[Names[# <> prefix <> "*"]& /@ $ContextPath]
+    ]
+]
