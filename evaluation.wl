@@ -151,27 +151,6 @@ $complete = <|
     "start_with_suffix" -> StartOfString ~~ RegularExpression["[a-zA-Z0-9$]*"]
 |>;
 
-docGen[symbol_String, level_Integer] := Module[
-    {usage}
-    ,
-    usage = StringReplace[
-        Information[symbol, "Usage"]
-        ,
-        RegularExpression["\!\(\*(.+?)\)"] :> toANSI["$1", "36", "plain" -> (level === 0)]
-    ];
-    StringRiffle[
-        StringTemplate["``\n``"][$ansi["wrapper"]["31", #1, ""], #2]& @@@ Join[{{"Usage:", usage}}, If[level === 1, #, {}]]& @ {
-            {"Attributes:", Information[symbol, "Attributes"]}
-            ,
-            {"Options:", ToString @ TableForm @ Options[Symbol @ symbol]}
-            ,
-            {"Documentation(Web):", Information[symbol, "Documentation"]["Web"]}
-        }
-        ,
-        "\n\n"
-    ]
-];
-
 inspectHandler[] := Module[
     {
         content = $session["socketMsg"]["content"]
@@ -201,24 +180,6 @@ inspectHandler[] := Module[
     rspMsgContent
 ];
 
-(* TODO more type: keyword, module *)
-
-symbolType[s_String] := Which[
-    If[
-        Context[s] == "Global`"
-        ,
-        ToExpression[s, InputForm, DownValues]
-        ,
-        SyntaxInformation @ ToExpression[s]
-    ] =!= {}, "function"
-    ,
-    MemberQ[{"True", "False", "None", "Infinity", "ComplexInfinity"}, s], "constant"
-    ,
-    True, "variable"
-];
-
-symbolSignature[s_String] := "Foo";
-
 completeHandler[] := Module[
     {
         content = $session["socketMsg"]["content"]
@@ -246,25 +207,3 @@ completeHandler[] := Module[
     rspMsgContent["metadata"]["_jupyter_types_experimental"] = <|"text" -> #, "type" -> symbolType[#], "signature" -> symbolSignature[#]|>& /@ rspMsgContent["matches"];
     {"complete_reply", rspMsgContent}
 ];
-
-(* Get names start with prefix_ *)
-
-getNamesFromPrefix[prefix_] := Module[
-    {}
-    ,
-    (* in running session first, or in system default *)
-    If[
-        $session["status"] === "idle"
-        ,
-        $debugWrite[4, "completion from link!"];
-        LinkWrite[
-            $session["link"]
-            ,
-            Unevaluated[EvaluatePacket[Flatten[Names[# <> prefix <> "*"]& /@ $ContextPath]]]
-        ];
-        Part[#, 1]& @ LinkRead[$session["link"]]
-        ,
-        $debugWrite[4, "completion from kernel!"];
-        Flatten[Names[# <> prefix <> "*"]& /@ $ContextPath]
-    ]
-]

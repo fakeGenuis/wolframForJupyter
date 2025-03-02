@@ -1,3 +1,10 @@
+If[
+    $Context === "Global`"
+    ,
+    Begin["wolframForJupyter`Private`"];
+    $fromGlobal = True
+];
+
 strRep1By1[s_String, rules_List] := (Composition @@ (r |-> StringReplace[#, r]&) /@ (Reverse @ rules)) @ s;
 
 boxRE = <|
@@ -108,3 +115,66 @@ textTruncate[s_String] := Module[{diff = StringLength[s] - $config["max_text_len
         errWrapper @ StringTemplate["(`1` more characters hide)"][diff]
     ]
 ];
+
+docGen[symbol_String, level_Integer] := Module[
+    {usage}
+    ,
+    usage = StringReplace[
+        Information[symbol, "Usage"]
+        ,
+        RegularExpression["\!\(\*(.+?)\)"] :> toANSI["$1", "36", "plain" -> (level === 0)]
+    ];
+    StringRiffle[
+        StringTemplate["``\n``"][$ansi["wrapper"]["31", #1, ""], #2]& @@@ Join[{{"Usage:", usage}}, If[level === 1, #, {}]]& @ {
+            {"Attributes:", Information[symbol, "Attributes"]}
+            ,
+            {"Options:", ToString @ TableForm @ Options[Symbol @ symbol]}
+            ,
+            {"Documentation(Web):", Information[symbol, "Documentation"]["Web"]}
+        }
+        ,
+        "\n\n"
+    ]
+];
+
+(* TODO more type: keyword, module *)
+
+symbolType[s_String] := Which[
+    If[
+        Context[s] == "Global`"
+        ,
+        ToExpression[s, InputForm, DownValues]
+        ,
+        SyntaxInformation @ ToExpression[s]
+    ] =!= {}, "function"
+    ,
+    MemberQ[{"True", "False", "None", "Infinity", "ComplexInfinity"}, s], "constant"
+    ,
+    True, "variable"
+];
+
+symbolSignature[s_String] := "Foo";
+
+(* Get names start with prefix_ *)
+
+getNamesFromPrefix[prefix_] := Module[
+    {}
+    ,
+    (* in running session first, or in system default *)
+    If[
+        $session["status"] === "idle"
+        ,
+        $debugWrite[4, "completion from link!"];
+        LinkWrite[
+            $session["link"]
+            ,
+            Unevaluated[EvaluatePacket[Flatten[Names[# <> prefix <> "*"]& /@ $ContextPath]]]
+        ];
+        Part[#, 1]& @ LinkRead[$session["link"]]
+        ,
+        $debugWrite[4, "completion from kernel!"];
+        Flatten[Names[# <> prefix <> "*"]& /@ $ContextPath]
+    ]
+]
+
+If[$fromGlobal === True, End[]];
