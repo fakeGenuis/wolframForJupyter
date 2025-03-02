@@ -120,8 +120,10 @@ docGen[symbol_String, level_Integer] := Module[
     {usage}
     ,
     usage = StringReplace[
+        (* TODO symbol value or definitions here? *)
         Information[symbol, "Usage"]
         ,
+        (* NOTE colored string may not supported in mini-buffer *)
         RegularExpression["\!\(\*(.+?)\)"] :> toANSI["$1", "36", "plain" -> (level === 0)]
     ];
     StringRiffle[
@@ -157,24 +159,6 @@ symbolSignature[s_String] := "Foo";
 
 (* Get names start with prefix_ *)
 
-getNamesFromPrefix[prefix_] := Module[
-    {}
-    ,
-    (* in running session first, or in system default *)
-    If[
-        $session["status"] === "idle"
-        ,
-        $debugWrite[4, "completion from link!"];
-        LinkWrite[
-            $session["link"]
-            ,
-            Unevaluated[EvaluatePacket[Flatten[Names[# <> prefix <> "*"]& /@ $ContextPath]]]
-        ];
-        Part[#, 1]& @ LinkRead[$session["link"]]
-        ,
-        $debugWrite[4, "completion from kernel!"];
-        Flatten[Names[# <> prefix <> "*"]& /@ $ContextPath]
-    ]
-]
+getNamesFromPrefix[prefix_] := Flatten[Names[# <> prefix <> "*"]& /@ $ContextPath];
 
 If[$fromGlobal === True, End[]];

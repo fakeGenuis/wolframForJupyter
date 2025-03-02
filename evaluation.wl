@@ -19,6 +19,8 @@ createSession[] := Module[
     (* skip `In[1]:= ` *)
     $session["pid"] = Part[#, 2, 1]& @ Table[LinkRead[$session["link"]], {2}];
     $debugWrite[1, StringTemplate["evaluation kernel (pid: ``) started!"][$session["pid"]]];
+    (* load completion utils, FIXME avoid link into applications *)
+    LinkWrite[$session["link"], Unevaluated[EvaluatePacket[Get["stream.wl"];]]];
     $session["status"] = "idle";
 ];
 
@@ -151,6 +153,26 @@ $complete = <|
     "start_with_suffix" -> StartOfString ~~ RegularExpression["[a-zA-Z0-9$]*"]
 |>;
 
+(* Helper to generate function run in link or kernel *)
+
+genSymbolHandlerF[] := If[
+    $session["status"] === "idle"
+    ,
+    (* Evaluate in link *)
+    (
+        LinkWrite[
+            $session["link"]
+            ,
+            Unevaluated[EvaluatePacket[ToExpression["wolframForJupyter`Private`" <> #] @@ Rest[{##}]]]
+        ];
+        First @ LinkRead[$session["link"]]
+    )&
+    ,
+    (* Local evaluation *)
+    ToExpression[#] @@ Rest[{##}]&
+];
+
+
 inspectHandler[] := Module[
     {
         content = $session["socketMsg"]["content"]
@@ -160,6 +182,8 @@ inspectHandler[] := Module[
         beforeEnd
         ,
         symbol
+        ,
+        evalLR = genSymbolHandlerF[]
     }
     ,
     (* FIXME inspect in jupyter browser *)
@@ -173,7 +197,7 @@ inspectHandler[] := Module[
     If[
         rspMsgContent["found"] = symbol =!= ""
         ,
-        rspMsgContent["data"] = <|"text/plain" -> docGen[symbol, content["detail_level"]]|>
+        rspMsgContent["data"] = <|"text/plain" -> evalLR["docGen", symbol, content["detail_level"]]|>
         ,
         Return[rspMsgContent]
     ];
@@ -184,26 +208,32 @@ completeHandler[] := Module[
     {
         content = $session["socketMsg"]["content"]
         ,
-        before
-        ,
-        end
+        beforeEnd
         ,
         rspMsgContent = <|"status" -> "ok", "metadata" -> <||>|>
         ,
         symbolPre
+        ,
+        evalLR = genSymbolHandlerF[]
     }
     ,
-    {before, end} = StringTakeDrop[content["code"], content["cursor_pos"]];
+    beforeEnd = StringTakeDrop[content["code"], content["cursor_pos"]];
     symbolPre = If[
         Length @ # == 0 || (StringLength @ First[#] < $config["complete_min_length"])
         ,
         Return[{"unknown", <||>}]
         ,
         First @ #
-    ]& @ StringCases[before, $complete["end_with_prefix"], 1];
-    rspMsgContent["matches"] = getNamesFromPrefix @ symbolPre;
+    ]& @ StringCases[First @ beforeEnd, $complete["end_with_prefix"], 1];
+    rspMsgContent["matches"] = evalLR["getNamesFromPrefix", symbolPre];
     rspMsgContent["cursor_start"] = content["cursor_pos"] - StringLength @ symbolPre;
-    rspMsgContent["cursor_end"] = content["cursor_pos"] + StringLength @ First @ StringCases[end, $complete["start_with_suffix"], 1];
-    rspMsgContent["metadata"]["_jupyter_types_experimental"] = <|"text" -> #, "type" -> symbolType[#], "signature" -> symbolSignature[#]|>& /@ rspMsgContent["matches"];
+    rspMsgContent["cursor_end"] = content["cursor_pos"] + StringLength @ First @ StringCases[Last @ beforeEnd, $complete["start_with_suffix"], 1];
+    rspMsgContent["metadata"]["_jupyter_types_experimental"] = <|
+        "text" -> #
+        ,
+        "type" -> evalLR["symbolType", #]
+        ,
+        "signature" -> evalLR["symbolSignature", #]
+    |>& /@ rspMsgContent["matches"];
     {"complete_reply", rspMsgContent}
 ];
