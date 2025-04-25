@@ -9,10 +9,12 @@ jupyter kernelspec install wolframforjupyter/ --user
 
 No explicit version implied, it depends on ~wolfram~ execute version in your ~$PATH~.
 
-For code completion of user defined symbols.
+For code completion of user defined symbols. (change =Wolfram= to =Mathematica= if
+version under v14.0)
 #+begin_src bash
-ln -s $(realpath stream.wl) ~/.Mathematica/Applications/stream.wl
+ln -s $(realpath stream.wl) ~/.Wolfram/Applications/stream.wl
 #+end_src
+- [ ] If not, system symbols completion still work.?
 
 * Kernel
 [[https://jupyter-client.readthedocs.io/en/stable/index.html][Jupyter Client 8.3 — jupyter_client 8.3.1 documentation]]
