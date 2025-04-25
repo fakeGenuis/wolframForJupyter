@@ -75,6 +75,9 @@ $debug = <|
     ][#1, #3]&)
     ,
     "IsMsg" -> (KeyExistsQ[#, "header"] && KeyExistsQ[#["header"], "msg_type"]&)
+    ,
+    (* FIXME same as in $message *)
+    "Serialize" -> (If[Head[#] === Association, ExportString[#, "JSON", "Compact" -> True], #]&)
 |>;
 
 errWrapper[s_String] := $ansi["wrapper"][$debug["ColoredCodes"][[2, -1]], s, ""];
@@ -91,7 +94,7 @@ $debugWrite[lvl_Integer, title_String, message_String] := If[
 
 $debugWrite[lvl_Integer, title_String, expr_] := $debugWrite[lvl, title, ToString[expr]];
 
-$debugWrite[lvl_Integer, msg_Association /; $debug["IsMsg"][msg]] := $debugWrite[lvl, msg["header"]["msg_type"], msg];
+$debugWrite[lvl_Integer, msg_Association /; $debug["IsMsg"][msg]] := $debugWrite[lvl, msg["header"]["msg_type"], $debug["Serialize"] /@ msg];
 
 $debugWrite[lvl_Integer, msg_] := $debugWrite[lvl, "", msg];
 
