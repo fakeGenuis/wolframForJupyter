@@ -154,7 +154,18 @@ usageOrValue[symbol_String] := Module[
         ,
         symbolType @ symbol === "function", {"Definition:", tos @ Short[Definition[symbol], 3]}
         ,
-        symbolType @ symbol === "variable", {"Value:", tos @ Short[First @ Values @ OwnValues[symbol], 3]}
+        symbolType @ symbol === "variable", {
+            "Value:"
+            ,
+            tos @ If[
+                OwnValues[symbol] === {}
+                ,
+                "This symbol have no value!"
+                ,
+                (* NOTE not always safe here *)
+                Short[First @ Values @ OwnValues[symbol], 3]
+            ]
+        }
         ,
         True, {"Usage:", Information[symbol, "Usage"]}
     ]
