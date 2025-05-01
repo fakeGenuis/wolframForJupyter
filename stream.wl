@@ -103,12 +103,12 @@ $config = <|
     ,
     "max_text_length" -> 2 * 10^3
     ,
-    "doc_PageWidth" -> 78
+    "doc_PageWidth" -> 88
     ,
     "complete_min_length" -> 3
 |>;
 
-SetOptions[$Output, PageWidth -> 4 * $config["doc_PageWidth"]];
+SetOptions[$Output, PageWidth -> $config["doc_PageWidth"]];
 
 textTruncate[s_String] := Module[{diff = StringLength[s] - $config["max_text_length"]},
     If[diff <= 0, Return[s]];
