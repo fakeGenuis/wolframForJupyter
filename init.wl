@@ -17,7 +17,7 @@ $kernelInfo = <|
     ,
     "implementation" -> "wolframForJupyter"
     ,
-    "implementation_version" -> "0.0.1"
+    "implementation_version" -> "1.0.0"
     ,
     "language_info" -> <|
         "name" -> "Wolfram Language"
